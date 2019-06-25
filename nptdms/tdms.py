@@ -707,7 +707,6 @@ class TdmsObject(object):
             }[accuracy]
         except KeyError:
             raise KeyError("Invalid accuracy: {0}".format(accuracy))
-
         # Because numpy only knows ints as its date datatype,
         # convert to accuracy.
         time_type = "timedelta64[{0}]".format(accuracy)
@@ -754,7 +753,12 @@ class TdmsObject(object):
                     self._data_insert_position + len(new_data))
                 self._data_insert_position += len(new_data)
                 # new_commit: cast to int32 for final stored value
-                self._data[data_pos[0]:data_pos[1]] = new_data.astype(np.int32)
+                #             added a test such that only int16 is casted to int32
+                #             probably should also check if comes from DaqMxRawData
+                if new_data.dtype == np.int16:
+                    self._data[data_pos[0]:data_pos[1]] = new_data.astype(np.int32)
+                else:
+                    self._data[data_pos[0]:data_pos[1]] = new_data
             else:
                 self._data.extend(new_data)
 
@@ -798,7 +802,6 @@ class TdmsObject(object):
                 self._data_scaled = self._data
             else:
                 self._data_scaled = scale.scale(self._data)
-
         return self._data_scaled
 
     @_property_builtin
