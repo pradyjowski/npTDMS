@@ -224,6 +224,6 @@ class TimeStamp(TdmsType):
                 timedelta(microseconds=micro_seconds))
 
 
-@tds_data_type(0xFFFFFFFF, np.int16, default_for_nptype=False)
+@tds_data_type(0xFFFFFFFF, np.int32, default_for_nptype=False)
 class DaqMxRawData(TdmsType):
-    size = 2
+    size = 4

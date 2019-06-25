@@ -548,18 +548,27 @@ class _TdmsSegment(object):
         data_pos = 0
         for (i, obj) in enumerate(data_objects):
             byte_columns = tuple(
-                range(data_pos, obj.data_type.size + data_pos))
+                range(data_pos, int(all_channel_bytes/len(data_objects)) + data_pos))   
             log.debug("Byte columns for channel %d: %s", i, byte_columns)
             # Select columns for this channel, so that number of values will
             # be number of bytes per point * number of data points.
+            # new_commit: using the incoming data frame to get variable length
+            #             instead of depending on types.py definition
             # Then use ravel to flatten the results into a vector.
             object_data = combined_data[:, byte_columns].ravel()
             # Now set correct data type, so that the array length should
             # be correct
-            object_data.dtype = (
-                np.dtype(obj.data_type.nptype).newbyteorder(self.endianness))
+            # new_commit: recognizing data type and sending a correct definition to
+            #             to _update_data where it'll be converted to int32
+            # to_do: implement a flag to distinguish between int and uint
+            if len(object_data) == 4:
+                object_data.dtype = (
+                    np.dtype(np.int32).newbyteorder(self.endianness))               
+            else:
+                object_data.dtype = (
+                    np.dtype(np.int16).newbyteorder(self.endianness))
             obj.tdms_object._update_data(object_data)
-            data_pos += obj.data_type.size
+            data_pos += object_data.dtype.itemsize
 
     def _read_interleaved(self, f, data_objects):
         """Read interleaved data that doesn't have a numpy type"""
@@ -744,7 +753,8 @@ class TdmsObject(object):
                     self._data_insert_position,
                     self._data_insert_position + len(new_data))
                 self._data_insert_position += len(new_data)
-                self._data[data_pos[0]:data_pos[1]] = new_data
+                # new_commit: cast to int32 for final stored value
+                self._data[data_pos[0]:data_pos[1]] = new_data.astype(np.int32)
             else:
                 self._data.extend(new_data)
 
